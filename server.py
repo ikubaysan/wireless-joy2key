@@ -104,8 +104,8 @@ class WebSocketServer:
         self.port = port
         self.manager = manager
 
-    async def _handler(self, websocket, path):
-        logger.info(f"Client connected: {path}")
+    async def _handler(self, websocket):
+        logger.info(f"Client connected")
         try:
             while True:
                 state_string = self.manager.read_inputs()
