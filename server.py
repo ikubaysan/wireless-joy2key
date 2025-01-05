@@ -32,6 +32,7 @@ class GameControllerManager:
         self.controllers: List[GameController] = []
         self.selected_controller: Optional[pygame.joystick.Joystick] = None
         self.input_mapping: dict = {}
+        self.button_states = {"left": 0, "down": 0, "up": 0, "right": 0}
         self._load_controllers()
 
     def _load_controllers(self) -> None:
@@ -57,48 +58,45 @@ class GameControllerManager:
             raise RuntimeError("No controller selected.")
 
         directions = ["up", "down", "left", "right"]
-        logger.info("Please press a button or move a control for each direction.")
+        logger.info("Please press a button for each direction.")
         for direction in directions:
+            logger.info(f"Press the button for '{direction}':")
             while True:
                 event = pygame.event.wait()
                 if event.type == pygame.JOYBUTTONDOWN:
                     self.input_mapping[direction] = ("button", event.button)
-                    logger.info(f"Mapped {direction} to button {event.button}.")
+                    logger.info(f"Mapped '{direction}' to button {event.button}.")
                     break
-                # elif event.type == pygame.JOYAXISMOTION and abs(event.value) > 0.5:
-                #     self.input_mapping[direction] = ("axis", event.axis, event.value)
-                #     logger.info(f"Mapped {direction} to axis {event.axis} with value {event.value:.2f}.")
-                #     break
-                # elif event.type == pygame.JOYHATMOTION:
-                #     self.input_mapping[direction] = ("hat", event.hat, event.value)
-                #     logger.info(f"Mapped {direction} to hat {event.hat} with value {event.value}.")
-                #     break
 
     def read_inputs(self) -> Optional[str]:
         if not self.selected_controller:
             raise RuntimeError("No controller selected.")
 
         events = pygame.event.get()
+        state_changed = False
+
         for event in events:
-            if event.type == pygame.JOYBUTTONDOWN:
+            if event.type in [pygame.JOYBUTTONDOWN, pygame.JOYBUTTONUP]:
+                is_pressed = 1 if event.type == pygame.JOYBUTTONDOWN else 0
                 for direction, mapping in self.input_mapping.items():
                     if mapping[0] == "button" and mapping[1] == event.button:
-                        return direction
-            # elif event.type == pygame.JOYAXISMOTION:
-            #     for direction, mapping in self.input_mapping.items():
-            #         if (
-            #             mapping[0] == "axis"
-            #             and mapping[1] == event.axis
-            #             and (mapping[2] > 0 and event.value > 0.5)
-            #             or (mapping[2] < 0 and event.value < -0.5)
-            #         ):
-            #             return direction
-            # elif event.type == pygame.JOYHATMOTION:
-            #     for direction, mapping in self.input_mapping.items():
-            #         if mapping[0] == "hat" and mapping[1] == event.hat and mapping[2] == event.value:
-            #             return direction
+                        if self.button_states[direction] != is_pressed:
+                            self.button_states[direction] = is_pressed
+                            state_changed = True
+
+        if state_changed:
+            # Construct state string in order: bit 0 - left, bit 1 - down, bit 2 - up, bit 3 - right
+            bits = [
+                str(self.button_states["left"]),
+                str(self.button_states["down"]),
+                str(self.button_states["up"]),
+                str(self.button_states["right"]),
+            ]
+            state_string = "".join(bits)
+            return state_string
 
         return None
+
 
 class WebSocketServer:
     def __init__(self, ip: str, port: int, manager: GameControllerManager):
@@ -110,10 +108,10 @@ class WebSocketServer:
         logger.info(f"Client connected: {path}")
         try:
             while True:
-                input_direction = self.manager.read_inputs()
-                if input_direction:
-                    logger.info(f"Sending input: {input_direction}")
-                    await websocket.send(input_direction)
+                state_string = self.manager.read_inputs()
+                if state_string:
+                    logger.info(f"Sending state: {state_string}")
+                    await websocket.send(state_string)
                 await asyncio.sleep(0.01)
         except websockets.exceptions.ConnectionClosed:
             logger.info("Client disconnected.")
