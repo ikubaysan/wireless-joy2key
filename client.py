@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     }
 
-    client = WebSocketClient(ip="localhost", port=8765, key_mapping=key_mapping)
+    client = WebSocketClient(ip="localhost", port=7482, key_mapping=key_mapping)
     try:
         asyncio.run(client.listen())
     except KeyboardInterrupt:

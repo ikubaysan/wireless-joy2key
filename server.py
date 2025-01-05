@@ -138,7 +138,7 @@ if __name__ == "__main__":
         manager.select_controller(selected_index)
         manager.configure_inputs()
 
-        server = WebSocketServer(ip="localhost", port=8765, manager=manager)
+        server = WebSocketServer(ip="0.0.0.0", port=7482, manager=manager)
         asyncio.run(server.run())
     except ValueError:
         logging.error("Invalid input. Please enter a valid index.")
