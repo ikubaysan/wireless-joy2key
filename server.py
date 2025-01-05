@@ -57,7 +57,7 @@ class GameControllerManager:
         if not self.selected_controller:
             raise RuntimeError("No controller selected.")
 
-        directions = ["up", "down", "left", "right"]
+        directions = ["left", "down", "up", "right"]
         logger.info("Please press a button for each direction.")
         for direction in directions:
             logger.info(f"Press the button for '{direction}':")
@@ -112,7 +112,7 @@ class WebSocketServer:
                 if state_string:
                     logger.info(f"Sending state: {state_string}")
                     await websocket.send(state_string)
-                await asyncio.sleep(0.01)
+                await asyncio.sleep(0.001)
         except websockets.exceptions.ConnectionClosed:
             logger.info("Client disconnected.")
 
